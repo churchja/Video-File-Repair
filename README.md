@@ -1,0 +1,167 @@
+# US/Iran Conflict Assessment Dashboard
+
+An automated daily intelligence tool that monitors US/Iran conflict escalation using multiple real-time data sources, AI-powered headline analysis, and a self-updating public web dashboard.
+
+---
+
+## What It Does
+
+Every morning at 7am (via cron), the script:
+
+1. Fetches conflict and casualty headlines from NewsAPI
+2. Sends headlines to Claude AI (Anthropic) for geopolitical threat analysis
+3. Downloads GDELT media tone and conflict theme data
+4. Fetches live WTI crude oil price
+5. Generates an overall threat level: **STABLE / MODERATE / SEVERE**
+6. Saves a dated text report to disk
+7. Regenerates an interactive HTML dashboard with timeline charts
+8. Automatically pushes the dashboard to GitHub Pages so it's publicly accessible
+
+---
+
+## Live Dashboard
+
+**[https://churchja.github.io/conflict-dashboard/](https://churchja.github.io/conflict-dashboard/)**
+
+Updated automatically every morning. Charts include:
+
+- **Threat Level Timeline** — STABLE / MODERATE / SEVERE over time, color-coded and time-scaled
+- **WTI Oil Price** — live crude price trend
+- **GDELT Media Tone** — global media hostility score (0 = neutral, more negative = more hostile/crisis-level)
+- **AI-Estimated Fatalities** — Claude AI's estimate of US/Coalition casualties vs. all-parties casualties, extracted from headline language
+
+---
+
+## Data Sources
+
+| Source | What it provides | Cost |
+|---|---|---|
+| [NewsAPI](https://newsapi.org) | Filtered English-language conflict headlines | Free tier |
+| [Anthropic Claude](https://anthropic.com) | AI threat assessment, fatality extraction, key signal detection | Pay per use |
+| [GDELT Project](https://gdeltproject.org) | Global media tone score, conflict themes (ARMEDCONFLICT, KILL, etc.) | Free, no key |
+| [OilPrice API](https://oilpriceapi.com) | Live WTI crude price | Free tier |
+
+---
+
+## Threat Level Definitions
+
+| Level | Meaning |
+|---|---|
+| 🟢 STABLE | Routine diplomacy, sanctions talk, no active military action |
+| 🟠 MODERATE | Heightened rhetoric, naval/air incidents, proxy skirmishes, new sanctions |
+| 🔴 SEVERE | Direct military strikes, confirmed casualties, imminent war signals |
+
+---
+
+## GDELT Media Tone Scale
+
+GDELT scores global news coverage of a topic on a scale from **0 (neutral) to -100 (most hostile)**. Lower is more concerning:
+
+- **0 to -3** — Mildly negative
+- **-3 to -8** — Hostile
+- **Below -8** — Crisis-level
+
+---
+
+## Setup
+
+### Requirements
+
+- Python 3.9+
+- macOS or Linux
+- Git
+
+### Install dependencies
+
+```bash
+cd ~/daily_conflict_report
+python3 -m venv venv
+source venv/bin/activate
+pip install requests
+```
+
+### API Keys Required
+
+| Key | Where to get it |
+|---|---|
+| `NEWS_API_KEY` | [newsapi.org](https://newsapi.org) — free account |
+| `OILPRICE_API_KEY` | [oilpriceapi.com](https://oilpriceapi.com) — free account |
+| `ANTHROPIC_API_KEY` | [console.anthropic.com](https://console.anthropic.com) — pay per use |
+
+### run.sh
+
+Create `~/daily_conflict_report/run.sh`:
+
+```bash
+#!/bin/bash
+export NEWS_API_KEY="your_key_here"
+export OILPRICE_API_KEY="your_key_here"
+export ANTHROPIC_API_KEY="your_key_here"
+export GITHUB_PAGES_REPO="/path/to/your/conflict-dashboard"   # optional
+cd ~/daily_conflict_report
+source venv/bin/activate
+python3 daily_conflict_report.py
+```
+
+```bash
+chmod +x ~/daily_conflict_report/run.sh
+```
+
+### Automate with cron (7am daily)
+
+```bash
+crontab -e
+```
+
+Add:
+```
+0 7 * * * ~/daily_conflict_report/run.sh
+```
+
+---
+
+## Auto-Publishing to GitHub Pages
+
+If `GITHUB_PAGES_REPO` is set, the script will automatically:
+
+1. Copy `dashboard.html` → `index.html` in your GitHub Pages repo
+2. Copy `threat_history.json` into the repo
+3. Commit and push — the public URL updates within ~30 seconds
+
+One-time setup:
+```bash
+mkdir ~/conflict-dashboard
+cd ~/conflict-dashboard
+git init
+git remote add origin https://github.com/YOUR_USERNAME/conflict-dashboard.git
+git push -u origin main
+```
+
+Then enable GitHub Pages in your repo: **Settings → Pages → Deploy from branch → main → / (root)**
+
+---
+
+## Output Files
+
+| File | Description |
+|---|---|
+| `report_YYYY-MM-DD.txt` | Full dated text report for each run |
+| `threat_history.json` | Persistent log of every run — feeds the dashboard charts |
+| `dashboard.html` | Self-contained interactive HTML dashboard |
+
+---
+
+## Notes on AI Fatality Estimates
+
+The fatality figures shown in the dashboard are **estimated by Claude AI from headline language** — they are not verified counts. Claude sums all explicit and implied death counts mentioned across headlines, separated into:
+
+- **US/Coalition only** — American and allied military deaths
+- **All parties** — US, Iranian, Iraqi, proxy fighters, and civilians combined
+
+These figures are useful for spotting escalation trends but should not be treated as precise body counts.
+
+---
+
+## Disclaimer
+
+This tool is for **informational and research purposes only**. Threat assessments are generated by AI from publicly available news sources and do not represent the views of any government or intelligence agency. Data may be incomplete, delayed, or inaccurate.
